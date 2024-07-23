@@ -13,8 +13,9 @@ async function start() {
 
   // Open Kalodata login page
   await page.goto('https://kalodata.com/login');
-    // Introduce a longer delay using setTimeout (10 seconds)
-    await new Promise(resolve => setTimeout(resolve, 10000));
+  
+  // Introduce a longer delay using setTimeout (10 seconds)
+  await new Promise(resolve => setTimeout(resolve, 15000));
 
   // Check if already logged in
   const loginSelector = '#register_email';
@@ -31,13 +32,16 @@ async function start() {
     await page.click('button[type="submit"]');
 
     // Wait for navigation to the next page
-    await page.waitForNavigation();
+    await page.waitForNavigation({ timeout: 120000, waitUntil: 'networkidle2' });
+
+    // Introduce a delay to ensure the login process is completed
+    await new Promise(resolve => setTimeout(resolve, 15000));
   }
 
   // Save a screenshot after logging in to verify
   await page.screenshot({ path: 'screenshot_after_login.png', fullPage: true });
- 
-  await page.goto('https://kalodata.com/video');
+
+  await page.goto('https://kalodata.com/video', { timeout: 60000, waitUntil: 'networkidle2' });
 
   // Wait for the video table to load with increased timeout
   await page.waitForSelector('.ant-table-row', { timeout: 60000 });
@@ -65,8 +69,8 @@ async function start() {
   // Take a screenshot after clicking the checkbox
   await page.screenshot({ path: 'screenshot_after_click_checkbox.png', fullPage: true });
 
-  // Introduce a longer delay using setTimeout (10 seconds)
-  await new Promise(resolve => setTimeout(resolve, 3000));
+  // Introduce a delay to ensure the checkbox selection is registered
+  await new Promise(resolve => setTimeout(resolve, 10000));
 
   // Click the Apply button
   const applyButtonSelector = "div.V2-Components-Button";
@@ -76,8 +80,10 @@ async function start() {
     const applyButton = buttons.find(button => button.textContent.includes('Apply'));
     if (applyButton) applyButton.click();
   }, applyButtonSelector);
-  // Introduce a longer delay using setTimeout (5 seconds)
-  await new Promise(resolve => setTimeout(resolve, 5000));
+
+  // Introduce a delay to ensure the apply action is registered
+  await new Promise(resolve => setTimeout(resolve, 10000));
+
   // Click the Submit button
   const submitButtonSelector = "div.V2-Components-Button";
   await page.waitForSelector(submitButtonSelector, { timeout: 30000 });
@@ -86,13 +92,29 @@ async function start() {
     const submitButton = buttons.find(button => button.textContent.includes('Submit'));
     if (submitButton) submitButton.click();
   }, submitButtonSelector);
-  // Introduce a longer delay using setTimeout (5 seconds)
-  await new Promise(resolve => setTimeout(resolve, 5000));
-  // Take a screenshot of the results
-  await page.screenshot({ path: 'screenshot_after_filter_submit.png', fullPage: true });
-  await page.waitForSelector(submitButtonSelector, { timeout: 30000 });
-    // Introduce a longer delay using setTimeout (5 seconds)
-    await new Promise(resolve => setTimeout(resolve, 5000));
+
+  // Introduce a delay to ensure the submit action is registered
+  await new Promise(resolve => setTimeout(resolve, 10000));
+
+  // Wait for the data to load after submitting the filters
+  await page.waitForSelector('.PageVideo-VideoContent', { timeout: 60000 });
+
+  // Click on the thumbnail of the first video
+  await page.evaluate(() => {
+    const firstVideoThumbnail = document.querySelector('.PageVideo-VideoContent .Component-Image.Layout-VideoCover.poster');
+    if (firstVideoThumbnail) {
+      firstVideoThumbnail.click();
+    } else {
+      console.log("First video thumbnail not found");
+    }
+  });
+
+  // Introduce a delay after clicking the thumbnail
+  await new Promise(resolve => setTimeout(resolve, 10000));
+
+  // Take a screenshot after clicking the first video thumbnail
+  await page.screenshot({ path: 'screenshot_after_click_thumbnail.png', fullPage: true });
+
   await browser.close();
 }
 
