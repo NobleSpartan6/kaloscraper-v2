@@ -1,21 +1,22 @@
 const puppeteer = require('puppeteer');
 const fs = require('fs/promises');
+require('dotenv').config();
 
 async function start() {
   const browser = await puppeteer.launch({
     headless: false,
-    args: ['--start-fullscreen'] // This will start the browser in full screen mode
+    args: ['--start-maximized','--window-size=1440,900'  ] // This will start the browser in full screen mode
   });
   const page = await browser.newPage();
 
   // Set the viewport to MacBook screen resolution
-  await page.setViewport({ width: 2560, height: 1600 });
+  await page.setViewport({ width: 1440, height: 900 });
 
   // Open Kalodata login page
   await page.goto('https://kalodata.com/login');
   
   // Introduce a longer delay using setTimeout (10 seconds)
-  await new Promise(resolve => setTimeout(resolve, 15000));
+  await new Promise(resolve => setTimeout(resolve, 1000));
 
   // Check if already logged in
   const loginSelector = '#register_email';
@@ -25,8 +26,8 @@ async function start() {
 
   if (!loggedIn) {
     // Enter login credentials
-    await page.type('#register_email', 'nobleeditingcommunity@gmail.com'); 
-    await page.type('#register_password', 'NobleSpartan6'); 
+    await page.type('#register_email', process.env.EMAIL); 
+    await page.type('#register_password', process.env.PASSWORD); 
 
     // Click the login button
     await page.click('button[type="submit"]');
@@ -35,7 +36,7 @@ async function start() {
     await page.waitForNavigation({ timeout: 120000, waitUntil: 'networkidle2' });
 
     // Introduce a delay to ensure the login process is completed
-    await new Promise(resolve => setTimeout(resolve, 15000));
+    await new Promise(resolve => setTimeout(resolve, 5000));
   }
 
   // Save a screenshot after logging in to verify
@@ -70,7 +71,7 @@ async function start() {
   await page.screenshot({ path: 'screenshot_after_click_checkbox.png', fullPage: true });
 
   // Introduce a delay to ensure the checkbox selection is registered
-  await new Promise(resolve => setTimeout(resolve, 10000));
+  await new Promise(resolve => setTimeout(resolve, 3000));
 
   // Click the Apply button
   const applyButtonSelector = "div.V2-Components-Button";
@@ -82,7 +83,7 @@ async function start() {
   }, applyButtonSelector);
 
   // Introduce a delay to ensure the apply action is registered
-  await new Promise(resolve => setTimeout(resolve, 10000));
+  await new Promise(resolve => setTimeout(resolve, 3000));
 
   // Click the Submit button
   const submitButtonSelector = "div.V2-Components-Button";
@@ -94,7 +95,7 @@ async function start() {
   }, submitButtonSelector);
 
   // Introduce a delay to ensure the submit action is registered
-  await new Promise(resolve => setTimeout(resolve, 10000));
+  await new Promise(resolve => setTimeout(resolve, 3000));
 
   // Wait for the data to load after submitting the filters
   await page.waitForSelector('.PageVideo-VideoContent', { timeout: 60000 });
@@ -110,11 +111,32 @@ async function start() {
   });
 
   // Introduce a delay after clicking the thumbnail
-  await new Promise(resolve => setTimeout(resolve, 10000));
+  await new Promise(resolve => setTimeout(resolve, 5000));
 
   // Take a screenshot after clicking the first video thumbnail
   await page.screenshot({ path: 'screenshot_after_click_thumbnail.png', fullPage: true });
 
+  // Click on the "Export Script" button
+  const exportScriptSelector = 'div.w-\\[40px\\].h-\\[40px\\].rounded-full.bg-\\[#56A1ED\\].flex.items-center.justify-center.shrink-0';
+  await page.waitForSelector(exportScriptSelector, { timeout: 60000 });
+  await page.click(exportScriptSelector);
+
+  // Wait for the "Copy" button to appear or timeout after 1 minute
+  const copyButtonSelector = 'div.V2-Components-Button.inline-flex.justify-center.items-center.gap-\\[4px\\].px-\\[12px\\].rounded-\\[4px\\].cursor-pointer.text-primary.border-\\[1px\\].border-primary.hover\\:bg-\\[#EEF6FD\\].active\\:border-\\[#3280D3\\].active\\:text-\\[#3280D3\\].py-\\[3px\\].h-\\[46px\\].w-\\[136px\\]';
+  await page.waitForSelector(copyButtonSelector, { timeout: 60000 });
+
+  // Introduce a delay to ensure the copy button is visible and interactable
+  await new Promise(resolve => setTimeout(resolve, 10000));
+
+  // Click the "Copy" button
+  await page.evaluate((selector) => {
+    const buttons = Array.from(document.querySelectorAll(selector));
+    const copyButton = buttons.find(button => button.textContent.includes('Copy'));
+    if (copyButton) copyButton.click();
+  }, copyButtonSelector);
+
+  // Take a screenshot after clicking the copy button
+  await page.screenshot({ path: 'screenshot_after_click_copy.png', fullPage: true });
   await browser.close();
 }
 
