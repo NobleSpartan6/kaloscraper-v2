@@ -115,11 +115,17 @@ async function start() {
 
   // Take a screenshot after clicking the first video thumbnail
   await page.screenshot({ path: 'screenshot_after_click_thumbnail.png', fullPage: true });
-
-  // Click on the "Export Script" button
-  const exportScriptSelector = 'div.w-\\[40px\\].h-\\[40px\\].rounded-full.bg-\\[#56A1ED\\].flex.items-center.justify-center.shrink-0';
-  await page.waitForSelector(exportScriptSelector, { timeout: 60000 });
-  await page.click(exportScriptSelector);
+ 
+  // Click on the "Export Script" button by its text content
+  await page.evaluate(() => {
+    const buttons = Array.from(document.querySelectorAll('div.flex-row.items-center.cursor-pointer'));
+    const exportScriptButton = buttons.find(button => button.innerText.includes('Export Script'));
+    if (exportScriptButton) {
+      exportScriptButton.click();
+    } else {
+      console.log("Export Script button not found");
+    }
+  });
 
   // Wait for the "Copy" button to appear or timeout after 1 minute
   const copyButtonSelector = 'div.V2-Components-Button.inline-flex.justify-center.items-center.gap-\\[4px\\].px-\\[12px\\].rounded-\\[4px\\].cursor-pointer.text-primary.border-\\[1px\\].border-primary.hover\\:bg-\\[#EEF6FD\\].active\\:border-\\[#3280D3\\].active\\:text-\\[#3280D3\\].py-\\[3px\\].h-\\[46px\\].w-\\[136px\\]';
