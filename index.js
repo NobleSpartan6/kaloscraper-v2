@@ -13,6 +13,8 @@ async function start() {
 
   // Open Kalodata login page
   await page.goto('https://kalodata.com/login');
+    // Introduce a longer delay using setTimeout (10 seconds)
+    await new Promise(resolve => setTimeout(resolve, 10000));
 
   // Check if already logged in
   const loginSelector = '#register_email';
@@ -47,10 +49,50 @@ async function start() {
   // Click the category filter using the selector
   await page.click(categoryFilterSelector);
 
-  // Save a screenshot after clicking the category filter
-  await page.screenshot({ path: 'screenshot_after_click_category.png', fullPage: true });
+  // Wait for the checkbox to be available
+  await page.waitForSelector('li[title="Food & Beverages"] .ant-cascader-checkbox-inner', { timeout: 60000 });
 
-  // Close the browser
+  // Click the "Food and Beverages" checkbox
+  await page.evaluate(() => {
+    const labels = Array.from(document.querySelectorAll('li[title="Food & Beverages"] .ant-cascader-checkbox-inner'));
+    if (labels.length > 0) {
+      labels[0].click();
+    } else {
+      console.log("Food and Beverages checkbox not found");
+    }
+  });
+
+  // Take a screenshot after clicking the checkbox
+  await page.screenshot({ path: 'screenshot_after_click_checkbox.png', fullPage: true });
+
+  // Introduce a longer delay using setTimeout (10 seconds)
+  await new Promise(resolve => setTimeout(resolve, 3000));
+
+  // Click the Apply button
+  const applyButtonSelector = "div.V2-Components-Button";
+  await page.waitForSelector(applyButtonSelector, { timeout: 30000 });
+  await page.evaluate((selector) => {
+    const buttons = Array.from(document.querySelectorAll(selector));
+    const applyButton = buttons.find(button => button.textContent.includes('Apply'));
+    if (applyButton) applyButton.click();
+  }, applyButtonSelector);
+  // Introduce a longer delay using setTimeout (5 seconds)
+  await new Promise(resolve => setTimeout(resolve, 5000));
+  // Click the Submit button
+  const submitButtonSelector = "div.V2-Components-Button";
+  await page.waitForSelector(submitButtonSelector, { timeout: 30000 });
+  await page.evaluate((selector) => {
+    const buttons = Array.from(document.querySelectorAll(selector));
+    const submitButton = buttons.find(button => button.textContent.includes('Submit'));
+    if (submitButton) submitButton.click();
+  }, submitButtonSelector);
+  // Introduce a longer delay using setTimeout (5 seconds)
+  await new Promise(resolve => setTimeout(resolve, 5000));
+  // Take a screenshot of the results
+  await page.screenshot({ path: 'screenshot_after_filter_submit.png', fullPage: true });
+  await page.waitForSelector(submitButtonSelector, { timeout: 30000 });
+    // Introduce a longer delay using setTimeout (5 seconds)
+    await new Promise(resolve => setTimeout(resolve, 5000));
   await browser.close();
 }
 
