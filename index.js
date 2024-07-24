@@ -127,23 +127,22 @@ async function start() {
     }
   });
 
-  // Wait for the "Copy" button to appear or timeout after 1 minute
-  const copyButtonSelector = 'div.V2-Components-Button.inline-flex.justify-center.items-center.gap-\\[4px\\].px-\\[12px\\].rounded-\\[4px\\].cursor-pointer.text-primary.border-\\[1px\\].border-primary.hover\\:bg-\\[#EEF6FD\\].active\\:border-\\[#3280D3\\].active\\:text-\\[#3280D3\\].py-\\[3px\\].h-\\[46px\\].w-\\[136px\\]';
-  await page.waitForSelector(copyButtonSelector, { timeout: 60000 });
+ // Wait for the script modal to appear
+ const scriptModalSelector = 'div.script';
+ await page.waitForSelector(scriptModalSelector, { timeout: 60000 });
 
-  // Introduce a delay to ensure the copy button is visible and interactable
-  await new Promise(resolve => setTimeout(resolve, 10000));
+ // Extract the script text
+ const scriptText = await page.evaluate((selector) => {
+   return document.querySelector(selector).innerText;
+ }, scriptModalSelector);
 
-  // Click the "Copy" button
-  await page.evaluate((selector) => {
-    const buttons = Array.from(document.querySelectorAll(selector));
-    const copyButton = buttons.find(button => button.textContent.includes('Copy'));
-    if (copyButton) copyButton.click();
-  }, copyButtonSelector);
-
-  // Take a screenshot after clicking the copy button
-  await page.screenshot({ path: 'screenshot_after_click_copy.png', fullPage: true });
-  await browser.close();
+ // Save the script text to a file
+ await fs.writeFile('script.txt', scriptText);
+ //delay
+ await new Promise(resolve => setTimeout(resolve, 5000));
+ // Take a screenshot after clicking the copy button
+ await page.screenshot({ path: 'screenshot_after_click_copy.png', fullPage: true });
+ await browser.close();
 }
 
 start();
