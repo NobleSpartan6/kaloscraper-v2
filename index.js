@@ -107,82 +107,94 @@ require('dotenv').config();
   // Wait for the data to load after submitting the filters
   await page.waitForSelector('.PageVideo-VideoContent', { timeout: 60000 });
 
-  // THIS IS WHERE THE SCRAPING STARTS
+  // Function to process a single video
+  async function processVideo(page, index) {
+    console.log(`Processing video ${index + 1}`);
 
-  // Click on the thumbnail of the first video
-  await page.evaluate(() => {
-    const firstVideoThumbnail = document.querySelector('.PageVideo-VideoContent .Component-Image.Layout-VideoCover.poster');
-    if (firstVideoThumbnail) {
-      firstVideoThumbnail.click();
-    } else {
-      console.log("First video thumbnail not found");
+    // Click on the thumbnail of the video
+    await page.evaluate((index) => {
+      const videoThumbnails = document.querySelectorAll('.PageVideo-VideoContent .Component-Image.Layout-VideoCover.poster');
+      if (videoThumbnails[index]) {
+        videoThumbnails[index].click();
+      } else {
+        console.log(`Video thumbnail ${index + 1} not found`);
+      }
+    }, index);
+
+    // Introduce a delay after clicking the thumbnail
+    await new Promise(resolve => setTimeout(resolve, 5000));
+
+    // Click on the "Export Script" button by its text content
+    await page.evaluate(() => {
+      const buttons = Array.from(document.querySelectorAll('div.flex-row.items-center.cursor-pointer'));
+      const exportScriptButton = buttons.find(button => button.innerText.includes('Export Script'));
+      if (exportScriptButton) {
+        exportScriptButton.click();
+      } else {
+        console.log("Export Script button not found");
+      }
+    });
+
+    // Wait for the script modal to appear
+    const scriptModalSelector = 'div.script';
+    await page.waitForSelector(scriptModalSelector, { timeout: 60000 });
+    // Wait for 3 seconds after the script modal appears
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    // Extract the script text
+    const scriptText = await page.evaluate((selector) => {
+      return document.querySelector(selector).innerText;
+    }, scriptModalSelector);
+
+    // Save the script text to a file
+    await fs.writeFile(`script_${index + 1}.txt`, scriptText);
+
+    // Close the script modal
+    await page.evaluate(() => {
+      const closeButton = document.querySelector('button.ant-modal-close');
+      if (closeButton) {
+        closeButton.click();
+      } else {
+        console.log("Close button for script modal not found");
+      }
+    });
+
+    // Wait for a short period to ensure the modal closes
+    await new Promise(resolve => setTimeout(resolve, 3000));
+
+    // Click on the exit button for the video popup
+    await page.evaluate(() => {
+      const exitButton = document.querySelector('div.w-\\[40px\\].h-\\[40px\\].rounded-full.bg-\\[\\#999\\].flex.items-center.justify-center.cursor-pointer');
+      if (exitButton) {
+        exitButton.click();
+      } else {
+        console.log("Exit button for video popup not found");
+      }
+    });
+
+    // Wait for a short period to ensure the popup closes
+    await new Promise(resolve => setTimeout(resolve, 3000));
+  }
+
+  // Main function to process all videos
+  async function processAllVideos(page) {
+    const videoCount = await page.evaluate(() => {
+      return document.querySelectorAll('.PageVideo-VideoContent .Component-Image.Layout-VideoCover.poster').length;
+    });
+
+    console.log(`Found ${videoCount} videos on the page`);
+
+    for (let i = 0; i < videoCount; i++) {
+      await processVideo(page, i);
     }
-  });
+  }
 
-  // Introduce a delay after clicking the thumbnail
-  await new Promise(resolve => setTimeout(resolve, 5000));
+  // Process all videos
+  await processAllVideos(page);
 
-  // Take a screenshot after clicking the first video thumbnail
-  await page.screenshot({ path: 'screenshot_after_click_thumbnail.png', fullPage: true });
- 
-  // Click on the "Export Script" button by its text content
-  await page.evaluate(() => {
-    const buttons = Array.from(document.querySelectorAll('div.flex-row.items-center.cursor-pointer'));
-    const exportScriptButton = buttons.find(button => button.innerText.includes('Export Script'));
-    if (exportScriptButton) {
-      exportScriptButton.click();
-    } else {
-      console.log("Export Script button not found");
-    }
-  });
-
- // Wait for the script modal to appear
- const scriptModalSelector = 'div.script';
- await page.waitForSelector(scriptModalSelector, { timeout: 60000 });
-
- // Extract the script text
- const scriptText = await page.evaluate((selector) => {
-   return document.querySelector(selector).innerText;
- }, scriptModalSelector);
-
- // Save the script text to a file
- await fs.writeFile('script.txt', scriptText);
- //delay
- await new Promise(resolve => setTimeout(resolve, 5000));
- // Take a screenshot after saving the script
- await page.screenshot({ path: 'screenshot_after_script.png', fullPage: true });
-
- // Close the script modal
- await page.evaluate(() => {
-   const closeButton = document.querySelector('button.ant-modal-close');
-   if (closeButton) {
-     closeButton.click();
-   } else {
-     console.log("Close button for script modal not found");
-   }
- });
-
- // Wait for a short period to ensure the modal closes
- await new Promise(resolve => setTimeout(resolve, 2000));
-
- // Take a screenshot after closing the script modal
- await page.screenshot({ path: 'screenshot_after_closing_script_modal.png', fullPage: true });
- // Click on the exit button for the video popup
- await page.evaluate(() => {
-   const exitButton = document.querySelector('div.w-\\[40px\\].h-\\[40px\\].rounded-full.bg-\\[\\#999\\].flex.items-center.justify-center.cursor-pointer');
-   if (exitButton) {
-     exitButton.click();
-   } else {
-     console.log("Exit button for video popup not found");
-   }
- });
-
- // Wait for a short period to ensure the popup closes
- await new Promise(resolve => setTimeout(resolve, 2000));
-
- // Take a screenshot after closing the video popup
- await page.screenshot({ path: 'screenshot_after_closing_video.png', fullPage: true });
- await browser.close();
+  // Take a screenshot after closing the video popup
+  await page.screenshot({ path: 'screenshot_after_closing_video.png', fullPage: true });
+  await browser.close();
 }
 
 start();
