@@ -32,14 +32,16 @@ def create_dashboard():
     top_phrases, top_words = identify_patterns(df)
 
     st.header("Top Performing Videos")
-    st.dataframe(df[['title', 'items_sold', 'revenue', 'views', 'gpm', 'score']].rename(columns={
+    df_display = df[['rank', 'title', 'items_sold', 'revenue', 'views', 'gpm', 'score']].rename(columns={
+        'rank': 'Rank',
         'title': 'Title',
         'items_sold': 'Items Sold',
         'revenue': 'Revenue ($)',
         'views': 'Views',
         'gpm': 'GPM($)',
         'score': 'Score'
-    }))
+    })
+    st.dataframe(df_display)
 
     st.header("Common Phrases")
     fig_phrases = px.bar(x=[phrase for phrase, _ in top_phrases], y=[score for _, score in top_phrases])

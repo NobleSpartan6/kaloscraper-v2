@@ -111,7 +111,6 @@ def rank_videos(df):
         else:
             df[f'{col}_normalized'] = 0
     
-    # Calculate score
     df['score'] = (
         df['items_sold_normalized'] * 0.3 +
         df['revenue_normalized'] * 0.3 +
@@ -119,7 +118,10 @@ def rank_videos(df):
         df['gpm_normalized'] * 0.2
     )
     
-    return df.sort_values('score', ascending=False)
+    df = df.sort_values('score', ascending=False).reset_index(drop=True)
+    df['rank'] = df.index + 1
+    
+    return df
 
 if __name__ == "__main__":
     scripts_dir = "../scripts"
