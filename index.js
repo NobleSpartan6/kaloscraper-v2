@@ -154,8 +154,44 @@ require('dotenv').config();
       return document.querySelector(selector).innerText;
     }, scriptModalSelector);
 
-    // Save the script text to a file in the scripts folder
-    await fs.writeFile(path.join(scriptsDir, `script_${index + 1}.txt`), scriptText);
+    // Extract the required information
+    const videoInfo = await page.evaluate((index) => {
+      const rows = document.querySelectorAll('.ant-table-row');
+      const row = rows[index];
+      if (!row) {
+        console.error(`Row at index ${index} not found`);
+        return null;
+      }
+      return {
+        title: row.querySelector('.PageVideo-VideoContent .title div')?.innerText.trim() || 'N/A',
+        itemsSold: row.querySelector('td:nth-child(4)')?.innerText.trim() || 'N/A',
+        revenue: row.querySelector('td:nth-child(5)')?.innerText.trim() || 'N/A',
+        views: row.querySelector('td:nth-child(7)')?.innerText.trim() || 'N/A',
+        gpm: row.querySelector('td:nth-child(9)')?.innerText.trim() || 'N/A',
+        adCPA: row.querySelector('td:nth-child(10)')?.innerText.trim() || 'N/A'
+      };
+    }, index);
+
+    if (videoInfo) {
+      // Format the information
+      const infoText = `
+Video Information:
+Title: ${videoInfo.title}
+Items Sold: ${videoInfo.itemsSold}
+Revenue: ${videoInfo.revenue}
+Views: ${videoInfo.views}
+GPM: ${videoInfo.gpm}
+Ad CPA: ${videoInfo.adCPA}
+
+Script:
+${scriptText}
+`;
+
+      // Save the combined information and script text to a file in the scripts folder
+      await fs.writeFile(path.join(scriptsDir, `script_${index + 1}.txt`), infoText);
+    } else {
+      console.error(`Failed to extract video information for video ${index + 1}`);
+    }
 
     // Close the script modal
     await page.evaluate(() => {

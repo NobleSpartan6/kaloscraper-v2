@@ -1,3 +1,13 @@
+
+Video Information:
+Title: #AggressiveTutorials #AggressiveTutorialLady #AggressiveCookingShow #AggressiveCookingTutorials #Aggrecipes #birriabomb #quesabirria #birriatacos #instantpotbirria #birriatacosrecipe
+Items Sold: 1033
+Revenue: $20.64k
+Views: 768.74k
+GPM: $26.85
+Ad CPA: $0.00
+
+Script:
 1
 0:00:00,000 --> 0:00:02,000
 I did not plan ahead for this
@@ -85,3 +95,4 @@ mmm
 22
 0:04:33,000 --> 0:04:42,000
 this is so good I'm loading up my plate this is delicious in my kids are missing out but of course it's good I made it follow along for more aggressive tutorials
+
