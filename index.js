@@ -1,5 +1,6 @@
 const puppeteer = require('puppeteer');
 const fs = require('fs/promises');
+const path = require('path');
 require('dotenv').config();
 
 // async function start() {
@@ -10,6 +11,13 @@ require('dotenv').config();
 
   // asycn start for wsl
   async function start() {
+    const scriptsDir = path.join(__dirname, 'scripts');
+    try {
+      await fs.mkdir(scriptsDir);
+    } catch (err) {
+      if (err.code !== 'EEXIST') throw err;
+    }
+
     const browser = await puppeteer.launch({
       headless: false,
       args: ['--no-sandbox', '--disable-setuid-sandbox', '--start-maximized', '--window-size=1440,900']
@@ -146,8 +154,8 @@ require('dotenv').config();
       return document.querySelector(selector).innerText;
     }, scriptModalSelector);
 
-    // Save the script text to a file
-    await fs.writeFile(`script_${index + 1}.txt`, scriptText);
+    // Save the script text to a file in the scripts folder
+    await fs.writeFile(path.join(scriptsDir, `script_${index + 1}.txt`), scriptText);
 
     // Close the script modal
     await page.evaluate(() => {
