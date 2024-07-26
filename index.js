@@ -2,11 +2,18 @@ const puppeteer = require('puppeteer');
 const fs = require('fs/promises');
 require('dotenv').config();
 
-async function start() {
-  const browser = await puppeteer.launch({
-    headless: false,
-    args: ['--start-maximized','--window-size=1440,900'  ] // This will start the browser in full screen mode
-  });
+// async function start() {
+//   const browser = await puppeteer.launch({
+//     headless: false,
+//     args: ['--start-maximized','--window-size=1440,900'  ] // This will start the browser in full screen mode
+//   });
+
+  // asycn start for wsl
+  async function start() {
+    const browser = await puppeteer.launch({
+      headless: false,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--start-maximized', '--window-size=1440,900']
+    });
   const page = await browser.newPage();
 
   // Set the viewport to MacBook screen resolution
@@ -100,6 +107,8 @@ async function start() {
   // Wait for the data to load after submitting the filters
   await page.waitForSelector('.PageVideo-VideoContent', { timeout: 60000 });
 
+  // THIS IS WHERE THE SCRAPING STARTS
+
   // Click on the thumbnail of the first video
   await page.evaluate(() => {
     const firstVideoThumbnail = document.querySelector('.PageVideo-VideoContent .Component-Image.Layout-VideoCover.poster');
@@ -140,8 +149,39 @@ async function start() {
  await fs.writeFile('script.txt', scriptText);
  //delay
  await new Promise(resolve => setTimeout(resolve, 5000));
- // Take a screenshot after clicking the copy button
- await page.screenshot({ path: 'screenshot_after_click_copy.png', fullPage: true });
+ // Take a screenshot after saving the script
+ await page.screenshot({ path: 'screenshot_after_script.png', fullPage: true });
+
+ // Close the script modal
+ await page.evaluate(() => {
+   const closeButton = document.querySelector('button.ant-modal-close');
+   if (closeButton) {
+     closeButton.click();
+   } else {
+     console.log("Close button for script modal not found");
+   }
+ });
+
+ // Wait for a short period to ensure the modal closes
+ await new Promise(resolve => setTimeout(resolve, 2000));
+
+ // Take a screenshot after closing the script modal
+ await page.screenshot({ path: 'screenshot_after_closing_script_modal.png', fullPage: true });
+ // Click on the exit button for the video popup
+ await page.evaluate(() => {
+   const exitButton = document.querySelector('div.w-\\[40px\\].h-\\[40px\\].rounded-full.bg-\\[\\#999\\].flex.items-center.justify-center.cursor-pointer');
+   if (exitButton) {
+     exitButton.click();
+   } else {
+     console.log("Exit button for video popup not found");
+   }
+ });
+
+ // Wait for a short period to ensure the popup closes
+ await new Promise(resolve => setTimeout(resolve, 2000));
+
+ // Take a screenshot after closing the video popup
+ await page.screenshot({ path: 'screenshot_after_closing_video.png', fullPage: true });
  await browser.close();
 }
 
