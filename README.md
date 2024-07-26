@@ -1,8 +1,4 @@
-# Project Setup Guide
-
-This guide will help you set up your environment on an Ubuntu system and run the Python code for the project. Follow these steps:
-
-## 1. Install Python and pip
+# Python Environment Reference
 
 First, update your package list and install Python 3 along with pip:
 
