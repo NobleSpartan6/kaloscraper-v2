@@ -65,7 +65,7 @@ def create_dashboard():
 
     # New section for script generation
     st.header("Generate TikTok Script")
-    
+    st.write("The script will be generated based on the top phrases and words found in top performing scripts. Powered by Llama 3.1")
     prompt = st.text_area("Enter a topic or product for the TikTok script:")
     
     if st.button("Generate Script"):
