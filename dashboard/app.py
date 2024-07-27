@@ -76,7 +76,7 @@ def create_dashboard():
                 context += f"Top words: {', '.join([word for word, _ in top_words[:50]])}\n"
                 
                 messages = [
-                    {"role": "system", "content": "You are an AI assistant that generates TikTok scripts based on successful patterns."},
+                    {"role": "system", "content": "You are an AI assistant that generates TikTok scripts based on successful patterns. Only use the phrases and words provided in the context if its relevant to the prompt."},
                     {"role": "user", "content": f"{context}\nGenerate a TikTok script about: {prompt}"}
                 ]
                 
