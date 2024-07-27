@@ -76,15 +76,16 @@ def create_dashboard():
                 context += f"Top words: {', '.join([word for word, _ in top_words[:50]])}\n"
                 
                 messages = [
-                    {"role": "system", "content": "You are an AI assistant that generates TikTok scripts based on successful patterns. Only use the phrases and words provided in the context if its relevant to the prompt."},
-                    {"role": "user", "content": f"{context}\nGenerate a TikTok script about: {prompt}"}
+                    {"role": "system", "content": "You are an AI assistant that generates TikTok scripts for UGC creators based on successful patterns. TikTok user-generated content (UGC) features products from a specific brand but is created by users instead of brands Only use the phrases and words provided in the context if its relevant to the prompt. If any words or phrases provided in context are not relevant to the prompt DO NOT include it when generating a script"},
+                    {"role": "user", "content": f"Top phrases and words:\n{context}\nGenerate a TikTok UGC script about: {prompt}"}
                 ]
+                print(messages)
                 
                 chat_completion = client.chat.completions.create(
                     model="llama-3.1-70b-versatile",
                     messages=messages,
-                    max_tokens=500,
-                    temperature=0.7
+                    max_tokens=800,
+                    temperature=0.8
                 )
                 
                 generated_script = chat_completion.choices[0].message.content
