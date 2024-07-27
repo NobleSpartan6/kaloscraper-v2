@@ -1,11 +1,11 @@
 
 Video Information:
 Title: #AggressiveTutorials #AggressiveTutorialLady #AggressiveCookingShow #AggressiveCookingTutorials #Aggrecipes #birrianachos #birria #beefbirria #birriabombs
-Items Sold: 1754
-Revenue: $21.85k
-Views: 1.51m
-GPM: $14.44
-Ad CPA: $0.00
+Items Sold: 1870
+Revenue: $24.17k
+Views: 1.6m
+GPM: $15.12
+Ad CPA: $0.03
 
 Script:
 1

@@ -1,11 +1,11 @@
 
 Video Information:
 Title: Replying to @Taylor smith let me tell you a bit about our business #energydrink #lostandfoundenergydrink #SmallBusiness
-Items Sold: 3452
-Revenue: $45.70k
-Views: 973.36k
-GPM: $46.96
-Ad CPA: $0.39
+Items Sold: 4136
+Revenue: $54.26k
+Views: 1.06m
+GPM: $51.36
+Ad CPA: $0.30
 
 Script:
 1

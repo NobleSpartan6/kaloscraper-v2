@@ -3,9 +3,15 @@ import plotly.express as px
 from analysis import preprocess_scripts, identify_patterns, rank_videos
 import os
 import pandas as pd
+from groq import Groq
 
 def create_dashboard():
     st.title("TikTok Script Analysis Dashboard")
+
+    client = Groq(
+    api_key = st.secrets["GROQ_API_KEY"]
+    )
+
 
     # User Guide
     st.sidebar.header("User Guide")
@@ -57,6 +63,37 @@ def create_dashboard():
     fig_metric = px.scatter(df, x='score', y=metric, hover_data=['title'])
     st.plotly_chart(fig_metric)
 
+    # New section for script generation
+    st.header("Generate TikTok Script")
+    
+    prompt = st.text_area("Enter a topic or product for the TikTok script:")
+    
+    if st.button("Generate Script"):
+        if prompt:
+            try:
+                # Prepare the context with top phrases and words
+                context = f"Top phrases: {', '.join([phrase for phrase, _ in top_phrases[:50]])}\n"
+                context += f"Top words: {', '.join([word for word, _ in top_words[:50]])}\n"
+                
+                messages = [
+                    {"role": "system", "content": "You are an AI assistant that generates TikTok scripts based on successful patterns."},
+                    {"role": "user", "content": f"{context}\nGenerate a TikTok script about: {prompt}"}
+                ]
+                
+                chat_completion = client.chat.completions.create(
+                    model="llama-3.1-70b-versatile",
+                    messages=messages,
+                    max_tokens=500,
+                    temperature=0.7
+                )
+                
+                generated_script = chat_completion.choices[0].message.content
+                st.text_area("Generated Script:", value=generated_script, height=300)
+            except Exception as e:
+                st.error(f"An error occurred: {str(e)}")
+        else:
+            st.warning("Please enter a topic or product for the script.")
+
     # Export button
     if st.button("Export Common Words and Phrases"):
         export_data = {
@@ -66,6 +103,8 @@ def create_dashboard():
         export_df = pd.DataFrame(export_data)
         export_df.to_csv("common_words_phrases.csv", index=False)
         st.success("Common words and phrases exported successfully!")
+
+
 
 if __name__ == "__main__":
     create_dashboard()
