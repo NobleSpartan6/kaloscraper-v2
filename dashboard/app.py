@@ -2,6 +2,7 @@ import streamlit as st
 import plotly.express as px
 from analysis import preprocess_scripts, identify_patterns, rank_videos
 import os
+import pandas as pd
 
 def create_dashboard():
     st.title("TikTok Script Analysis Dashboard")
@@ -55,6 +56,16 @@ def create_dashboard():
     metric = st.selectbox("Select Metric", ['items_sold', 'revenue', 'views', 'gpm'])
     fig_metric = px.scatter(df, x='score', y=metric, hover_data=['title'])
     st.plotly_chart(fig_metric)
+
+    # Export button
+    if st.button("Export Common Words and Phrases"):
+        export_data = {
+            "common_phrases": top_phrases,
+            "common_words": top_words
+        }
+        export_df = pd.DataFrame(export_data)
+        export_df.to_csv("common_words_phrases.csv", index=False)
+        st.success("Common words and phrases exported successfully!")
 
 if __name__ == "__main__":
     create_dashboard()
