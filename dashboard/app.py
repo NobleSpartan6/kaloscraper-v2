@@ -12,12 +12,11 @@ def create_dashboard():
     api_key = st.secrets["GROQ_API_KEY"]
     )
 
-
     # User Guide
     st.sidebar.header("User Guide")
     st.sidebar.write("""
     1. **Top Performing Videos**: Displays a table of the top-performing videos based on various metrics.
-    2. **Common Phrases**: Shows a bar chart of the most common phrases found in the scripts.
+    2. **Common Phrases by Category**: Shows bar charts of the most common phrases found in the scripts, categorized by type.
     3. **Common Words**: Shows a bar chart of the most common words found in the scripts.
     4. **Performance Metrics**: Allows you to select a metric and view its relationship with the video score in a scatter plot.
     """)
@@ -36,7 +35,7 @@ def create_dashboard():
     scripts_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'scripts')
     df = preprocess_scripts(scripts_dir)
     df = rank_videos(df)
-    top_phrases, top_words = identify_patterns(df)
+    categorized_phrases, top_words, ai_analysis, uncategorized_phrases = identify_patterns(df)
 
     st.header("Top Performing Videos")
     df_display = df[['rank', 'title', 'items_sold', 'revenue', 'views', 'gpm', 'score']].rename(columns={
@@ -50,13 +49,27 @@ def create_dashboard():
     })
     st.dataframe(df_display)
 
-    st.header("Common Phrases")
-    fig_phrases = px.bar(x=[phrase for phrase, _ in top_phrases], y=[score for _, score in top_phrases])
-    st.plotly_chart(fig_phrases)
+    st.header("Common Phrases by Category")
+    for category, phrases in categorized_phrases.items():
+        if phrases:
+            fig_phrases = px.bar(
+                x=[phrase for phrase, _ in phrases[:10]],
+                y=[score for _, score in phrases[:10]],
+                title=f"Top Phrases in {category.capitalize()}"
+            )
+            st.plotly_chart(fig_phrases)
+        else:
+            st.write(f"No common phrases found for {category}")
 
     st.header("Common Words")
     fig_words = px.bar(x=[word for word, _ in top_words], y=[count for _, count in top_words])
     st.plotly_chart(fig_words)
+
+    # st.header("Uncategorized Top Phrases")
+    # st.write(", ".join(uncategorized_phrases[:20]))
+
+    # st.header("AI Analysis of Patterns")
+    # st.write(ai_analysis)
 
     st.header("Performance Metrics")
     metric = st.selectbox("Select Metric", ['items_sold', 'revenue', 'views', 'gpm'])
@@ -71,13 +84,15 @@ def create_dashboard():
     if st.button("Generate Script"):
         if prompt:
             try:
-                # Prepare the context with top phrases and words
-                context = f"Top phrases: {', '.join([phrase for phrase, _ in top_phrases[:50]])}\n"
-                context += f"Top words: {', '.join([word for word, _ in top_words[:50]])}\n"
+                # Prepare the context with categorized phrases and top words
+                context = "Categorized phrases:\n"
+                for category, phrases in categorized_phrases.items():
+                    context += f"{category.capitalize()}: {', '.join([phrase for phrase, _ in phrases[:50]])}\n"
+                context += f"\nTop words: {', '.join([word for word, _ in top_words[:50]])}\n"
                 
                 messages = [
                     {"role": "system", "content": "You are an AI assistant that generates TikTok scripts for UGC creators based on successful patterns. TikTok user-generated content (UGC) features products from a specific brand but is created by users instead of brands Only use the phrases and words provided in the context if its relevant to the prompt. If any words or phrases provided in context are not relevant to the prompt DO NOT include it when generating a script"},
-                    {"role": "user", "content": f"Top phrases and words:\n{context}\nGenerate a TikTok UGC script about: {prompt}"}
+                    {"role": "user", "content": f"Categorized phrases and words:\n{context}\nGenerate a TikTok UGC script about: {prompt}"}
                 ]
                 print(messages)
                 
@@ -98,14 +113,12 @@ def create_dashboard():
     # Export button
     if st.button("Export Common Words and Phrases"):
         export_data = {
-            "common_phrases": top_phrases,
-            "common_words": top_words
+            "categorized_phrases": {category: [phrase for phrase, _ in phrases] for category, phrases in categorized_phrases.items()},
+            "top_words": [word for word, _ in top_words]
         }
         export_df = pd.DataFrame(export_data)
         export_df.to_csv("common_words_phrases.csv", index=False)
         st.success("Common words and phrases exported successfully!")
-
-
 
 if __name__ == "__main__":
     create_dashboard()
