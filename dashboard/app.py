@@ -91,7 +91,7 @@ def create_dashboard():
                 context += f"\nTop words: {', '.join([word for word, _ in top_words[:50]])}\n"
                 
                 messages = [
-                    {"role": "system", "content": "You are an AI assistant that generates TikTok scripts for UGC creators based on successful patterns. TikTok user-generated content (UGC) features products from a specific brand but is created by users instead of brands Only use the phrases and words provided in the context if its relevant to the prompt. If any words or phrases provided in context are not relevant to the prompt DO NOT include it when generating a script"},
+                    {"role": "system", "content": "You are an AI assistant that generates TikTok scripts for UGC creators based on successful patterns. TikTok user-generated content (UGC) features products from a specific brand but is created by users instead of brands Only use the phrases and words provided in the context if its relevant to the prompt. If any words or phrases provided in context are not relevant to the prompt DO NOT include it when generating a script. Formal outros are not typically used in TikTok videos so do not include that in the script."},
                     {"role": "user", "content": f"Categorized phrases and words:\n{context}\nGenerate a TikTok UGC script about: {prompt}"}
                 ]
                 print(messages)
