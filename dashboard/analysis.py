@@ -198,10 +198,8 @@ def identify_patterns(df):
     Uncategorized top phrases: {', '.join(uncategorized_phrases[:20])}
     
     Provide insights on:
-    1. How well the predefined categories capture the common themes in the scripts
-    2. Suggestions for additional categories based on the uncategorized phrases
-    3. Effective language patterns observed in each category
-    4. Recommendations for creating engaging UGC content using these patterns
+    - Effective language patterns observed in each category
+    - Recommendations for creating engaging UGC content using these patterns
 
     Your output will be displayed in an Analysis Dashboard. Format your text accordingly.
     """

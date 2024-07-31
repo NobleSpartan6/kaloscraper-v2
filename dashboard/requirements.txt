@@ -5,3 +5,5 @@ plotly
 streamlit
 groq
 spacy
+textblob
+gensim 

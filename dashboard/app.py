@@ -4,99 +4,134 @@ from analysis import preprocess_scripts, identify_patterns, rank_videos
 import os
 import pandas as pd
 from groq import Groq
+import json
 
 def create_dashboard():
-    st.title("TikTok Script Analysis Dashboard")
+    st.set_page_config(layout="wide")
+    st.title("TikTok Script Analysis & Generation Dashboard")
 
     client = Groq(
     api_key = st.secrets["GROQ_API_KEY"]
     )
 
     # User Guide
-    st.sidebar.header("User Guide")
-    st.sidebar.write("""
-    1. **Top Performing Videos**: Displays a table of the top-performing videos based on various metrics.
-    2. **Common Phrases by Category**: Shows bar charts of the most common phrases found in the scripts, categorized by type.
-    3. **Common Words**: Shows a bar chart of the most common words found in the scripts.
-    4. **Performance Metrics**: Allows you to select a metric and view its relationship with the video score in a scatter plot.
-    """)
+    with st.expander("User Guide"):
+        st.write("""
+        1. **Top Performing Videos**: Displays a table of the top-performing videos based on various metrics.
+        2. **Common Phrases by Category**: Shows bar charts of the most common phrases found in the scripts, categorized by type.
+        3. **Common Words**: Shows a bar chart of the most common words found in the scripts.
+        4. **Performance Metrics**: Allows you to select a metric and view its relationship with the video score in a scatter plot.
+        5. **Script Generation**: Generate a TikTok script based on top-performing patterns and AI analysis.
+        """)
 
     # Explanation of Ranking System
-    st.sidebar.header("Ranking System Explanation")
-    st.sidebar.write("""
-    The ranking system scores videos based on the following normalized metrics:
-    - **Items Sold**: 30%
-    - **Revenue**: 30%
-    - **Views**: 20%
-    - **GPM (Gross Profit Margin)**: 20%
-    
-    The scores are calculated and the videos are ranked from highest to lowest score.
-    """)
+    with st.expander("Ranking System Explanation"):
+        st.write("""
+        The ranking system scores videos based on the following normalized metrics:
+        - **Items Sold**: 30%
+        - **Revenue**: 30%
+        - **Views**: 20%
+        - **GPM (Gross Profit Margin)**: 20%
+        
+        The scores are calculated and the videos are ranked from highest to lowest score.
+        """)
 
     scripts_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'scripts')
     df = preprocess_scripts(scripts_dir)
     df = rank_videos(df)
     categorized_phrases, top_words, ai_analysis, uncategorized_phrases = identify_patterns(df)
 
-    st.header("Top Performing Videos")
-    df_display = df[['rank', 'title', 'items_sold', 'revenue', 'views', 'gpm', 'score']].rename(columns={
-        'rank': 'Rank',
-        'title': 'Title',
-        'items_sold': 'Items Sold',
-        'revenue': 'Revenue ($)',
-        'views': 'Views',
-        'gpm': 'GPM($)',
-        'score': 'Score'
-    })
-    st.dataframe(df_display)
+    show_dashboard(df, categorized_phrases, top_words, ai_analysis, uncategorized_phrases, client)
 
-    st.header("Common Phrases by Category")
-    for category, phrases in categorized_phrases.items():
-        if phrases:
+def show_dashboard(df, categorized_phrases, top_words, ai_analysis, uncategorized_phrases, client):
+    st.header("Video Performance Analysis")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.subheader("Top Performing Videos")
+        df_display = df[['rank', 'title', 'items_sold', 'revenue', 'views', 'gpm', 'score']].rename(columns={
+            'rank': 'Rank', 'title': 'Title', 'items_sold': 'Items Sold',
+            'revenue': 'Revenue ($)', 'views': 'Views', 'gpm': 'GPM($)', 'score': 'Score'
+        })
+        st.dataframe(df_display)
+
+    with col2:
+        st.subheader("Performance Metrics")
+        metric = st.selectbox("Select Metric", ['items_sold', 'revenue', 'views', 'gpm'])
+        fig_metric = px.scatter(df, x='score', y=metric, hover_data=['title'])
+        st.plotly_chart(fig_metric, use_container_width=True)
+
+    st.header("Language Pattern Analysis")
+    
+    col3, col4 = st.columns(2)
+    
+    with col3:
+        st.subheader("Common Phrases by Category")
+        category = st.selectbox("Select Category", list(categorized_phrases.keys()))
+        if categorized_phrases[category]:
             fig_phrases = px.bar(
-                x=[phrase for phrase, _ in phrases[:10]],
-                y=[score for _, score in phrases[:10]],
-                title=f"Top Phrases in {category.capitalize()}"
+                y=[phrase for phrase, _ in categorized_phrases[category][:10]],
+                x=[score for _, score in categorized_phrases[category][:10]],
+                title=f"Top Phrases in {category.capitalize()}",
+                orientation='h'
             )
-            st.plotly_chart(fig_phrases)
+            fig_phrases.update_layout(yaxis={'categoryorder':'total ascending'})
+            st.plotly_chart(fig_phrases, use_container_width=True)
         else:
             st.write(f"No common phrases found for {category}")
 
-    st.header("Common Words")
-    fig_words = px.bar(x=[word for word, _ in top_words], y=[count for _, count in top_words])
-    st.plotly_chart(fig_words)
+    with col4:
+        st.subheader("Common Words")
+        fig_words = px.bar(
+            y=[word for word, _ in top_words[:20]],
+            x=[count for _, count in top_words[:20]],
+            orientation='h'
+        )
+        fig_words.update_layout(yaxis={'categoryorder':'total ascending'})
+        st.plotly_chart(fig_words, use_container_width=True)
 
-    st.header("Uncategorized Top Phrases")
-    st.write(", ".join(uncategorized_phrases[:20]))
+    with st.expander("Uncategorized Top Phrases"):
+        st.write(", ".join(uncategorized_phrases[:20]))
 
-    st.header("AI Analysis of Patterns")
-    st.write(ai_analysis)
+    with st.expander("AI Analysis of Patterns"):
+        st.write(ai_analysis)
 
-    st.header("Performance Metrics")
-    metric = st.selectbox("Select Metric", ['items_sold', 'revenue', 'views', 'gpm'])
-    fig_metric = px.scatter(df, x='score', y=metric, hover_data=['title'])
-    st.plotly_chart(fig_metric)
-
-    # New section for script generation
     st.header("Generate TikTok Script")
-    st.write("The script will be generated based on the top phrases, words, and AI analysis found in top performing scripts. Powered by Llama 3.1")
-    prompt = st.text_area("Enter a topic or product for the TikTok script:")
-    
+    st.write("Generate a script based on top-performing patterns and AI analysis powered by Llama 3.1.")
+
+    col5, col6 = st.columns(2)
+
+    with col5:
+        product = st.text_input("Product or Topic:")
+        target_audience = st.text_input("Target Audience:")
+        video_duration = st.slider("Video Duration (seconds)", 15, 60, 30)
+        tone = st.selectbox("Tone", ["Casual", "Professional", "Humorous", "Informative", "Enthusiastic"])
+
+    with col6:
+        key_features = st.text_area("Key Features or Benefits (one per line):")
+        call_to_action = st.text_input("Call to Action:")
+        include_categories = st.multiselect("Include Phrase Categories", list(categorized_phrases.keys()))
+
+    use_ai_analysis = st.checkbox("Incorporate AI Analysis Insights", value=True)
+
     if st.button("Generate Script"):
-        if prompt:
+        if product:
             try:
-                # Prepare the context with categorized phrases, top words, and AI analysis
-                context = "Categorized phrases:\n"
-                for category, phrases in categorized_phrases.items():
-                    context += f"{category.capitalize()}: {', '.join([phrase for phrase, _ in phrases[:50]])}\n"
-                context += f"\nTop words: {', '.join([word for word, _ in top_words[:50]])}\n"
-                context += f"\nAI Analysis of Patterns:\n{ai_analysis}\n"
+                context = prepare_context(categorized_phrases, top_words, ai_analysis, include_categories, use_ai_analysis)
+                script_params = {
+                    "product": product,
+                    "target_audience": target_audience,
+                    "video_duration": video_duration,
+                    "tone": tone,
+                    "key_features": key_features.split('\n'),
+                    "call_to_action": call_to_action
+                }
                 
                 messages = [
-                    {"role": "system", "content": "You are an AI assistant that generates TikTok scripts for UGC creators based on successful patterns and AI analysis. TikTok user-generated content (UGC) features products from a specific brand but is created by users instead of brands. Use the phrases, words, and insights provided in the context if they are relevant to the prompt. If any words, phrases, or insights provided in the context are not relevant to the prompt, DO NOT include them when generating a script. Formal outros are not typically used in TikTok videos, so do not include that in the script. Incorporate the insights from the AI analysis to create a more effective and engaging script. Some scripts may mention terms for products unrelated to the product the user provides for script generation. Avoid including irrelevant terms in the prompt in this case."},
-                    {"role": "user", "content": f"Categorized phrases, words, and AI analysis:\n{context}\nGenerate a TikTok UGC script about: {prompt}"}
+                    {"role": "system", "content": "You are an AI assistant that generates TikTok scripts for UGC creators based on successful patterns and AI analysis."},
+                    {"role": "user", "content": f"Context:\n{context}\n\nGenerate a TikTok UGC script with the following parameters:\n{json.dumps(script_params, indent=2)}"}
                 ]
-                print(messages)
                 
                 chat_completion = client.chat.completions.create(
                     model="llama-3.1-70b-versatile",
@@ -110,17 +145,16 @@ def create_dashboard():
             except Exception as e:
                 st.error(f"An error occurred: {str(e)}")
         else:
-            st.warning("Please enter a topic or product for the script.")
+            st.warning("Please enter a product or topic for the script.")
 
-    # Export button
-    if st.button("Export Common Words and Phrases"):
-        export_data = {
-            "categorized_phrases": {category: [phrase for phrase, _ in phrases] for category, phrases in categorized_phrases.items()},
-            "top_words": [word for word, _ in top_words]
-        }
-        export_df = pd.DataFrame(export_data)
-        export_df.to_csv("common_words_phrases.csv", index=False)
-        st.success("Common words and phrases exported successfully!")
+def prepare_context(categorized_phrases, top_words, ai_analysis, include_categories, use_ai_analysis):
+    context = "Categorized phrases:\n"
+    for category in include_categories:
+        context += f"{category.capitalize()}: {', '.join([phrase for phrase, _ in categorized_phrases[category][:20]])}\n"
+    context += f"\nTop words: {', '.join([word for word, _ in top_words[:30]])}\n"
+    if use_ai_analysis:
+        context += f"\nAI Analysis of Patterns:\n{ai_analysis}\n"
+    return context
 
 if __name__ == "__main__":
     create_dashboard()
