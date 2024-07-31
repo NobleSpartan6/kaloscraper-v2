@@ -1,0 +1,12 @@
+
+Video Information:
+Title: Now I need some pretend gold for the kids dragons to hoard when they hatch them for christmas 😂🥰😜 #pye #dragons #mysterytoy #mysterydragons #foryou #foryoupage #fyp #fypage
+Items Sold: 466
+Revenue: $11.65k
+Views: 1.37m
+GPM: $8.47
+Ad CPA: $34.36
+
+Script:
+{"success":false,"data":null,"message":"java.lang.RuntimeException: com.google.protobuf.InvalidProtocolBufferException: Type of the Any message does not match the given class.","cached":null,"code":"1004"}
+
