@@ -29,6 +29,7 @@ def create_dashboard():
     - **Revenue**: 30%
     - **Views**: 20%
     - **GPM (Gross Profit Margin)**: 20%
+    
     The scores are calculated and the videos are ranked from highest to lowest score.
     """)
 
@@ -65,11 +66,11 @@ def create_dashboard():
     fig_words = px.bar(x=[word for word, _ in top_words], y=[count for _, count in top_words])
     st.plotly_chart(fig_words)
 
-    # st.header("Uncategorized Top Phrases")
-    # st.write(", ".join(uncategorized_phrases[:20]))
+    st.header("Uncategorized Top Phrases")
+    st.write(", ".join(uncategorized_phrases[:20]))
 
-    # st.header("AI Analysis of Patterns")
-    # st.write(ai_analysis)
+    st.header("AI Analysis of Patterns")
+    st.write(ai_analysis)
 
     st.header("Performance Metrics")
     metric = st.selectbox("Select Metric", ['items_sold', 'revenue', 'views', 'gpm'])
@@ -78,21 +79,22 @@ def create_dashboard():
 
     # New section for script generation
     st.header("Generate TikTok Script")
-    st.write("The script will be generated based on the top phrases and words found in top performing scripts. Powered by Llama 3.1")
+    st.write("The script will be generated based on the top phrases, words, and AI analysis found in top performing scripts. Powered by Llama 3.1")
     prompt = st.text_area("Enter a topic or product for the TikTok script:")
     
     if st.button("Generate Script"):
         if prompt:
             try:
-                # Prepare the context with categorized phrases and top words
+                # Prepare the context with categorized phrases, top words, and AI analysis
                 context = "Categorized phrases:\n"
                 for category, phrases in categorized_phrases.items():
                     context += f"{category.capitalize()}: {', '.join([phrase for phrase, _ in phrases[:50]])}\n"
                 context += f"\nTop words: {', '.join([word for word, _ in top_words[:50]])}\n"
+                context += f"\nAI Analysis of Patterns:\n{ai_analysis}\n"
                 
                 messages = [
-                    {"role": "system", "content": "You are an AI assistant that generates TikTok scripts for UGC creators based on successful patterns. TikTok user-generated content (UGC) features products from a specific brand but is created by users instead of brands Only use the phrases and words provided in the context if its relevant to the prompt. If any words or phrases provided in context are not relevant to the prompt DO NOT include it when generating a script. Formal outros are not typically used in TikTok videos so do not include that in the script."},
-                    {"role": "user", "content": f"Categorized phrases and words:\n{context}\nGenerate a TikTok UGC script about: {prompt}"}
+                    {"role": "system", "content": "You are an AI assistant that generates TikTok scripts for UGC creators based on successful patterns and AI analysis. TikTok user-generated content (UGC) features products from a specific brand but is created by users instead of brands. Use the phrases, words, and insights provided in the context if they are relevant to the prompt. If any words, phrases, or insights provided in the context are not relevant to the prompt, DO NOT include them when generating a script. Formal outros are not typically used in TikTok videos, so do not include that in the script. Incorporate the insights from the AI analysis to create a more effective and engaging script. Some scripts may mention terms for products unrelated to the product the user provides for script generation. Avoid including irrelevant terms in the prompt in this case."},
+                    {"role": "user", "content": f"Categorized phrases, words, and AI analysis:\n{context}\nGenerate a TikTok UGC script about: {prompt}"}
                 ]
                 print(messages)
                 

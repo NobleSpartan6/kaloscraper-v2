@@ -8,11 +8,84 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from groq import Groq
 import logging
 import streamlit as st
+from nltk.stem import WordNetLemmatizer
+import spacy
+import re
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 nltk.download('punkt', quiet=True)
 nltk.download('stopwords', quiet=True)
+
+lemmatizer = WordNetLemmatizer()
+
+nlp = spacy.load("en_core_web_sm")
+
+def expand_contractions(text):
+    contractions = {
+        "ain't": "am not",
+        "aren't": "are not",
+        "can't": "cannot",
+        "couldn't": "could not",
+        "didn't": "did not",
+        "doesn't": "does not",
+        "don't": "do not",
+        "hadn't": "had not",
+        "hasn't": "has not",
+        "haven't": "have not",
+        "he'd": "he would",
+        "he'll": "he will",
+        "he's": "he is",
+        "I'd": "I would",
+        "I'll": "I will",
+        "I'm": "I am",
+        "I've": "I have",
+        "isn't": "is not",
+        "it's": "it is",
+        "let's": "let us",
+        "mightn't": "might not",
+        "mustn't": "must not",
+        "shan't": "shall not",
+        "she'd": "she would",
+        "she'll": "she will",
+        "she's": "she is",
+        "shouldn't": "should not",
+        "that's": "that is",
+        "there's": "there is",
+        "they'd": "they would",
+        "they'll": "they will",
+        "they're": "they are",
+        "they've": "they have",
+        "we'd": "we would",
+        "we're": "we are",
+        "weren't": "were not",
+        "we've": "we have",
+        "what'll": "what will",
+        "what're": "what are",
+        "what's": "what is",
+        "what've": "what have",
+        "where's": "where is",
+        "who'd": "who would",
+        "who'll": "who will",
+        "who're": "who are",
+        "who's": "who is",
+        "who've": "who have",
+        "won't": "will not",
+        "wouldn't": "would not",
+        "you'd": "you would",
+        "you'll": "you will",
+        "you're": "you are",
+        "you've": "you have",
+        "gonna": "going to",
+        "gotta": "got to",
+        "wanna": "want to"
+    }
+    pattern = re.compile(r'\b(' + '|'.join(contractions.keys()) + r')\b')
+    return pattern.sub(lambda x: contractions[x.group()], text)
+
+def process_text(text):
+    doc = nlp(expand_contractions(text))
+    return [token.lemma_ for token in doc if not token.is_stop and token.is_alpha and len(token) > 2]
 
 def preprocess_scripts(scripts_dir):
     logging.info(f"Processing scripts from directory: {scripts_dir}")
@@ -51,9 +124,8 @@ def preprocess_scripts(scripts_dir):
                 if not script_text.strip():
                     script_text = video_info.get('Title', '')
                 
-                # Tokenize and clean the script text
-                tokens = word_tokenize(script_text.lower())
-                tokens = [word for word in tokens if word.isalnum() and word not in stopwords.words('english')]
+                # Process the script text
+                tokens = process_text(script_text)
                 
                 data.append({
                     'title': video_info.get('Title', 'N/A'),
@@ -130,6 +202,8 @@ def identify_patterns(df):
     2. Suggestions for additional categories based on the uncategorized phrases
     3. Effective language patterns observed in each category
     4. Recommendations for creating engaging UGC content using these patterns
+
+    Your output will be displayed in an Analysis Dashboard. Format your text accordingly.
     """
     
     try:
