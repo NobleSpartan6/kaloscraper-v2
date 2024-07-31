@@ -1,0 +1,12 @@
+
+Video Information:
+Title: We all just wanna do better and feel better! #barbaraoneill #celticsalt
+Items Sold: 469
+Revenue: $16.44k
+Views: 102.79k
+GPM: $159.89
+Ad CPA: $0.00
+
+Script:
+{"success":false,"data":null,"message":"java.lang.RuntimeException: com.google.protobuf.InvalidProtocolBufferException: Type of the Any message does not match the given class.","cached":null,"code":"1004"}
+

@@ -1,10 +1,10 @@
 
 Video Information:
 Title: #TikTokShop #pyegames
-Items Sold: 2121
-Revenue: $53.02k
-Views: 838.42k
-GPM: $63.24
+Items Sold: 2157
+Revenue: $53.92k
+Views: 872.94k
+GPM: $61.77
 Ad CPA: $0.00
 
 Script:

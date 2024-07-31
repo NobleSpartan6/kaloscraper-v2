@@ -3,3 +3,4 @@ node_modules
 venv
 dashboard/.streamlit/secrets.toml
 cookies.json
+scripts 

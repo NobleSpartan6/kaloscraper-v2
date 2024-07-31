@@ -144,66 +144,173 @@ async function start() {
   // Wait for the data to load after submitting the filters
   await page.waitForSelector('.PageVideo-VideoContent', { timeout: 60000 });
 
-  // Function to process a single video
-  async function processVideo(page, index) {
-    console.log(`Processing video ${index + 1}`);
+  // Ask user for the number of pages to scrape
+  const pagesToScrape = parseInt(await askQuestion('Enter the number of pages to scrape: '), 10);
 
-    // Click on the thumbnail of the video
-    await page.evaluate((index) => {
-      const videoThumbnails = document.querySelectorAll('.PageVideo-VideoContent .Component-Image.Layout-VideoCover.poster');
-      if (videoThumbnails[index]) {
-        videoThumbnails[index].click();
-      } else {
-        console.log(`Video thumbnail ${index + 1} not found`);
+  if (isNaN(pagesToScrape) || pagesToScrape < 1) {
+    console.log('Invalid input. Please enter a positive number.');
+    return;
+  }
+
+  console.log(`Will scrape ${pagesToScrape} page(s).`);
+
+  for (let currentPage = 1; currentPage <= pagesToScrape; currentPage++) {
+    console.log(`Scraping set ${currentPage} of ${pagesToScrape}`);
+
+    // Wait for the video content to be visible
+    await page.waitForSelector('.PageVideo-VideoContent', { timeout: 60000 });
+
+    // Process all videos in the current set
+    await processAllVideos(page, currentPage, scriptsDir);
+
+    if (currentPage < pagesToScrape) {
+      // Load the next set of videos
+      const hasNextSet = await clickNextButton(page);
+      
+      if (!hasNextSet) {
+        console.log('No more video sets available. Stopping scraping.');
+        break;
       }
-    }, index);
-
-    // Introduce a delay after clicking the thumbnail
-    await new Promise(resolve => setTimeout(resolve, 5000));
-
-    // Click on the "Export Script" button by its text content
-    await page.evaluate(() => {
-      const buttons = Array.from(document.querySelectorAll('div.flex-row.items-center.cursor-pointer'));
-      const exportScriptButton = buttons.find(button => button.innerText.includes('Export Script'));
-      if (exportScriptButton) {
-        exportScriptButton.click();
-      } else {
-        console.log("Export Script button not found");
+      
+      // Wait for the page to load after clicking "Next"
+      try {
+        await page.waitForSelector('.PageVideo-VideoContent', { timeout: 60000 });
+      } catch (error) {
+        console.log('Timeout waiting for next page to load. Continuing anyway.');
       }
+    }
+  }
+
+  // Take a final screenshot
+  await page.screenshot({ path: 'screenshot_after_scraping.png', fullPage: true });
+  await browser.close();
+}
+
+async function clickNextButton(page) {
+  const nextButtonSelector = '.ant-pagination-next';
+  
+  try {
+    // Check if the next button is disabled
+    const isDisabled = await page.evaluate((selector) => {
+      const nextButton = document.querySelector(selector);
+      return nextButton ? nextButton.classList.contains('ant-pagination-disabled') : true;
+    }, nextButtonSelector);
+
+    if (isDisabled) {
+      console.log('Next button is disabled. No more pages available.');
+      return false;
+    }
+
+    // Get the first video title before clicking
+    const firstVideoTitleBefore = await page.evaluate(() => {
+      const firstVideoElement = document.querySelector('.PageVideo-VideoContent .title div');
+      return firstVideoElement ? firstVideoElement.innerText.trim() : null;
     });
 
-    // Wait for the script modal to appear
-    const scriptModalSelector = 'div.script';
-    await page.waitForSelector(scriptModalSelector, { timeout: 60000 });
-    // Wait for 3 seconds after the script modal appears
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    // Click the next button
+    await page.click(nextButtonSelector + ' button');
+    
+    // Wait for the content to update with a longer timeout
+    await page.waitForFunction(
+      (oldTitle) => {
+        const newFirstVideoElement = document.querySelector('.PageVideo-VideoContent .title div');
+        return newFirstVideoElement && newFirstVideoElement.innerText.trim() !== oldTitle;
+      },
+      { timeout: 60000 }, // Increased to 60 seconds
+      firstVideoTitleBefore
+    );
 
-    // Extract the script text
-    const scriptText = await page.evaluate((selector) => {
-      return document.querySelector(selector).innerText;
-    }, scriptModalSelector);
+    console.log('Successfully loaded the next set of videos.');
+    return true;
+  } catch (error) {
+    console.log('Error loading the next set of videos:', error.message);
+    return false;
+  }
+}
 
-    // Extract the required information
-    const videoInfo = await page.evaluate((index) => {
-      const rows = document.querySelectorAll('.ant-table-row');
-      const row = rows[index];
-      if (!row) {
-        console.error(`Row at index ${index} not found`);
-        return null;
+async function processAllVideos(page, setIndex, scriptsDir) {
+  try {
+    await page.waitForSelector('.PageVideo-VideoContent', { timeout: 60000 });
+    
+    const videoCount = await page.evaluate(() => {
+      return document.querySelectorAll('.PageVideo-VideoContent .Component-Image.Layout-VideoCover.poster').length;
+    });
+
+    console.log(`Found ${videoCount} videos in the current set`);
+
+    for (let i = 0; i < videoCount; i++) {
+      try {
+        await processVideo(page, i, setIndex, scriptsDir);
+      } catch (error) {
+        console.log(`Error processing video ${i + 1} in set ${setIndex}:`, error.message);
       }
-      return {
-        title: row.querySelector('.PageVideo-VideoContent .title div')?.innerText.trim() || 'N/A',
-        itemsSold: row.querySelector('td:nth-child(4)')?.innerText.trim() || 'N/A',
-        revenue: row.querySelector('td:nth-child(5)')?.innerText.trim() || 'N/A',
-        views: row.querySelector('td:nth-child(7)')?.innerText.trim() || 'N/A',
-        gpm: row.querySelector('td:nth-child(9)')?.innerText.trim() || 'N/A',
-        adCPA: row.querySelector('td:nth-child(10)')?.innerText.trim() || 'N/A'
-      };
-    }, index);
+    }
+  } catch (error) {
+    console.log(`Error processing video set ${setIndex}:`, error.message);
+    await page.screenshot({ path: path.join(scriptsDir, `error_set${setIndex}.png`), fullPage: true });
+  }
+}
 
-    if (videoInfo) {
-      // Format the information
-      const infoText = `
+// Function to process a single video
+async function processVideo(page, index, setIndex, scriptsDir) {
+  console.log(`Processing video ${index + 1} in set ${setIndex}`);
+
+  // Click on the thumbnail of the video
+  await page.evaluate((index) => {
+    const videoThumbnails = document.querySelectorAll('.PageVideo-VideoContent .Component-Image.Layout-VideoCover.poster');
+    if (videoThumbnails[index]) {
+      videoThumbnails[index].click();
+    } else {
+      console.log(`Video thumbnail ${index + 1} not found`);
+    }
+  }, index);
+
+  // Introduce a delay after clicking the thumbnail
+  await new Promise(resolve => setTimeout(resolve, 5000));
+
+  // Click on the "Export Script" button by its text content
+  await page.evaluate(() => {
+    const buttons = Array.from(document.querySelectorAll('div.flex-row.items-center.cursor-pointer'));
+    const exportScriptButton = buttons.find(button => button.innerText.includes('Export Script'));
+    if (exportScriptButton) {
+      exportScriptButton.click();
+    } else {
+      console.log("Export Script button not found");
+    }
+  });
+
+  // Wait for the script modal to appear
+  const scriptModalSelector = 'div.script';
+  await page.waitForSelector(scriptModalSelector, { timeout: 60000 });
+  // Wait for 3 seconds after the script modal appears
+  await new Promise(resolve => setTimeout(resolve, 3000));
+
+  // Extract the script text
+  const scriptText = await page.evaluate((selector) => {
+    return document.querySelector(selector).innerText;
+  }, scriptModalSelector);
+
+  // Extract the required information
+  const videoInfo = await page.evaluate((index) => {
+    const rows = document.querySelectorAll('.ant-table-row');
+    const row = rows[index];
+    if (!row) {
+      console.error(`Row at index ${index} not found`);
+      return null;
+    }
+    return {
+      title: row.querySelector('.PageVideo-VideoContent .title div')?.innerText.trim() || 'N/A',
+      itemsSold: row.querySelector('td:nth-child(4)')?.innerText.trim() || 'N/A',
+      revenue: row.querySelector('td:nth-child(5)')?.innerText.trim() || 'N/A',
+      views: row.querySelector('td:nth-child(7)')?.innerText.trim() || 'N/A',
+      gpm: row.querySelector('td:nth-child(9)')?.innerText.trim() || 'N/A',
+      adCPA: row.querySelector('td:nth-child(10)')?.innerText.trim() || 'N/A'
+    };
+  }, index);
+
+  if (videoInfo) {
+    // Format the information
+    const infoText = `
 Video Information:
 Title: ${videoInfo.title}
 Items Sold: ${videoInfo.itemsSold}
@@ -216,58 +323,52 @@ Script:
 ${scriptText}
 `;
 
-      // Save the combined information and script text to a file in the scripts folder
-      await fs.writeFile(path.join(scriptsDir, `script_${index + 1}.txt`), infoText);
+    // Save the combined information and script text to a file in the scripts folder
+    const fileName = `script_set${setIndex}_video${index + 1}.txt`;
+    await fs.writeFile(path.join(scriptsDir, fileName), infoText);
+  } else {
+    console.error(`Failed to extract video information for video ${index + 1} in set ${setIndex}`);
+  }
+
+  // Close the script modal
+  await page.evaluate(() => {
+    const closeButton = document.querySelector('button.ant-modal-close');
+    if (closeButton) {
+      closeButton.click();
     } else {
-      console.error(`Failed to extract video information for video ${index + 1}`);
+      console.log("Close button for script modal not found");
     }
+  });
 
-    // Close the script modal
-    await page.evaluate(() => {
-      const closeButton = document.querySelector('button.ant-modal-close');
-      if (closeButton) {
-        closeButton.click();
-      } else {
-        console.log("Close button for script modal not found");
-      }
-    });
+  // Wait for a short period to ensure the modal closes
+  await new Promise(resolve => setTimeout(resolve, 3000));
 
-    // Wait for a short period to ensure the modal closes
-    await new Promise(resolve => setTimeout(resolve, 3000));
-
-    // Click on the exit button for the video popup
-    await page.evaluate(() => {
-      const exitButton = document.querySelector('div.w-\\[40px\\].h-\\[40px\\].rounded-full.bg-\\[\\#999\\].flex.items-center.justify-center.cursor-pointer');
-      if (exitButton) {
-        exitButton.click();
-      } else {
-        console.log("Exit button for video popup not found");
-      }
-    });
-
-    // Wait for a short period to ensure the popup closes
-    await new Promise(resolve => setTimeout(resolve, 3000));
-  }
-
-  // Main function to process all videos
-  async function processAllVideos(page) {
-    const videoCount = await page.evaluate(() => {
-      return document.querySelectorAll('.PageVideo-VideoContent .Component-Image.Layout-VideoCover.poster').length;
-    });
-
-    console.log(`Found ${videoCount} videos on the page`);
-
-    for (let i = 0; i < videoCount; i++) {
-      await processVideo(page, i);
+  // Click on the exit button for the video popup
+  await page.evaluate(() => {
+    const exitButton = document.querySelector('div.w-\\[40px\\].h-\\[40px\\].rounded-full.bg-\\[\\#999\\].flex.items-center.justify-center.cursor-pointer');
+    if (exitButton) {
+      exitButton.click();
+    } else {
+      console.log("Exit button for video popup not found");
     }
-  }
+  });
 
-  // Process all videos
-  await processAllVideos(page);
+  // Wait for a short period to ensure the popup closes
+  await new Promise(resolve => setTimeout(resolve, 3000));
+}
 
-  // Take a screenshot after closing the video popup
-  await page.screenshot({ path: 'screenshot_after_closing_video.png', fullPage: true });
-  await browser.close();
+async function askQuestion(query) {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  return new Promise(resolve => {
+    rl.question(query, (answer) => {
+      rl.close();
+      resolve(answer.trim());
+    });
+  });
 }
 
 start();
